@@ -34,7 +34,7 @@ public class MostSoldProducts {
                     
                     int qty = Integer.parseInt(tokens[3].trim());
                     
-                    // Only consider positive quantities (ignoring returns/cancellations)
+                    // Only consider positive quantities
                     if (descStr.length() > 0 && qty > 0) {
                         productDesc.set(descStr);
                         quantity.set(qty);
