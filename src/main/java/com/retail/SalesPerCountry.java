@@ -9,6 +9,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.NLineInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 public class SalesPerCountry {
@@ -60,11 +61,18 @@ public class SalesPerCountry {
 
     public static void main(String[] args) throws Exception {
         Configuration conf = new Configuration();
-        
+
         // Force Hadoop to use the local filesystem instead of HDFS
         conf.set("fs.defaultFS", "file:///");
         conf.set("mapreduce.framework.name", "local");
-        
+
+        // OnlineRetail.csv has 541909 data rows + 1 header = 541910 total lines
+        // Divide by 3 mappers: ceil(541909 / 3) = 180637 lines per mapper
+        // Mapper 1 → lines 1–180637
+        // Mapper 2 → lines 180638–361274
+        // Mapper 3 → lines 361275–541909
+        conf.setInt(NLineInputFormat.LINES_PER_MAP, 180637);
+
         Job job = Job.getInstance(conf, "Sales Per Country");
         job.setJarByClass(SalesPerCountry.class);
         job.setMapperClass(SalesMapper.class);
@@ -72,12 +80,13 @@ public class SalesPerCountry {
         job.setReducerClass(SalesReducer.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(DoubleWritable.class);
-        
-        // Hardcode local paths (adjust the input path if needed)
-        // Ensure the input file exists at this exact path, and the output directory does NOT exist yet.
+
+        // Use NLineInputFormat to split by line count instead of byte size
+        job.setInputFormatClass(NLineInputFormat.class);
+
         FileInputFormat.addInputPath(job, new Path("OnlineRetail.csv"));
         FileOutputFormat.setOutputPath(job, new Path("output_sales"));
-        
+
         System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }
