@@ -31,14 +31,14 @@ public class SalesPerCountry {
                     String countryStr = tokens[7].trim();
                     double quantity = Double.parseDouble(tokens[3].trim());
                     double unitPrice = Double.parseDouble(tokens[5].trim());
-                    
+
                     if (countryStr.length() > 0) {
                         country.set(countryStr);
                         revenue.set(quantity * unitPrice);
                         context.write(country, revenue);
                     }
                 } catch (NumberFormatException e) {
-                     // Ignore malformed rows (e.g., empty quantity/price)
+                    // Ignore malformed rows (e.g., empty quantity/price)
                 }
             }
         }
@@ -47,7 +47,8 @@ public class SalesPerCountry {
     public static class SalesReducer extends Reducer<Text, DoubleWritable, Text, DoubleWritable> {
         private DoubleWritable result = new DoubleWritable();
 
-        public void reduce(Text key, Iterable<DoubleWritable> values, Context context) throws IOException, InterruptedException {
+        public void reduce(Text key, Iterable<DoubleWritable> values, Context context)
+                throws IOException, InterruptedException {
             double sum = 0;
             for (DoubleWritable val : values) {
                 sum += val.get();
@@ -58,12 +59,12 @@ public class SalesPerCountry {
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 2) {
-            System.err.println("Usage: SalesPerCountry <input path> <output path>");
-            System.exit(-1);
-        }
-        
         Configuration conf = new Configuration();
+        
+        // Force Hadoop to use the local filesystem instead of HDFS
+        conf.set("fs.defaultFS", "file:///");
+        conf.set("mapreduce.framework.name", "local");
+        
         Job job = Job.getInstance(conf, "Sales Per Country");
         job.setJarByClass(SalesPerCountry.class);
         job.setMapperClass(SalesMapper.class);
@@ -72,8 +73,10 @@ public class SalesPerCountry {
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(DoubleWritable.class);
         
-        FileInputFormat.addInputPath(job, new Path(args[0]));
-        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+        // Hardcode local paths (adjust the input path if needed)
+        // Ensure the input file exists at this exact path, and the output directory does NOT exist yet.
+        FileInputFormat.addInputPath(job, new Path("OnlineRetail.csv"));
+        FileOutputFormat.setOutputPath(job, new Path("output_sales"));
         
         System.exit(job.waitForCompletion(true) ? 0 : 1);
     }

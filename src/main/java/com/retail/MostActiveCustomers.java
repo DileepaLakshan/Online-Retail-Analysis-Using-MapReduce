@@ -50,12 +50,12 @@ public class MostActiveCustomers {
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 2) {
-            System.err.println("Usage: MostActiveCustomers <input path> <output path>");
-            System.exit(-1);
-        }
-        
         Configuration conf = new Configuration();
+        
+        // Force Hadoop to use the local filesystem instead of HDFS
+        conf.set("fs.defaultFS", "file:///");
+        conf.set("mapreduce.framework.name", "local");
+        
         Job job = Job.getInstance(conf, "Most Active Customers");
         job.setJarByClass(MostActiveCustomers.class);
         job.setMapperClass(CustomerMapper.class);
@@ -64,8 +64,9 @@ public class MostActiveCustomers {
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(IntWritable.class);
         
-        FileInputFormat.addInputPath(job, new Path(args[0]));
-        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+        // Hardcode local paths
+        FileInputFormat.addInputPath(job, new Path("OnlineRetail.csv"));
+        FileOutputFormat.setOutputPath(job, new Path("output_customers"));
         
         System.exit(job.waitForCompletion(true) ? 0 : 1);
     }

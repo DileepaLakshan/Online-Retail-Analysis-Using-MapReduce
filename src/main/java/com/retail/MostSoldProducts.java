@@ -34,7 +34,7 @@ public class MostSoldProducts {
                     
                     int qty = Integer.parseInt(tokens[3].trim());
                     
-                    // Only consider positive quantities
+                    // Only consider positive quantities (ignoring returns/cancellations)
                     if (descStr.length() > 0 && qty > 0) {
                         productDesc.set(descStr);
                         quantity.set(qty);
@@ -61,12 +61,12 @@ public class MostSoldProducts {
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 2) {
-            System.err.println("Usage: MostSoldProducts <input path> <output path>");
-            System.exit(-1);
-        }
-        
         Configuration conf = new Configuration();
+        
+        // Force Hadoop to use the local filesystem instead of HDFS
+        conf.set("fs.defaultFS", "file:///");
+        conf.set("mapreduce.framework.name", "local");
+
         Job job = Job.getInstance(conf, "Most Sold Products");
         job.setJarByClass(MostSoldProducts.class);
         job.setMapperClass(ProductMapper.class);
@@ -75,8 +75,9 @@ public class MostSoldProducts {
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(IntWritable.class);
         
-        FileInputFormat.addInputPath(job, new Path(args[0]));
-        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+        // Hardcode local paths
+        FileInputFormat.addInputPath(job, new Path("OnlineRetail.csv"));
+        FileOutputFormat.setOutputPath(job, new Path("output_products"));
         
         System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
